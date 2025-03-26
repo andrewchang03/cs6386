@@ -7,7 +7,7 @@ import copy
 
 def build_index(data, k):
     norms = np.sqrt(data.multiply(data).sum(axis=1))
-    model = sim.cosine(data, k=k+1, verbose=False)  # generate top-k
+    model = sim.cosine(data, k=k+1, verbose=False)  # generate top-k, (k + 1) since top-k might contain self
     index = [[] for _ in range(model.shape[0])]
 
     for r, c, val in zip(model.row, model.col, model.data):
@@ -19,7 +19,7 @@ def build_index(data, k):
 
     return norms, index
 
-def forget(data, i, g, k, norms, index):
+def forget(data, i, g, k, norms, index, stats):
     norms[i] = np.sqrt(norms[i] ** 2 - data[i, g] ** 2)
     zeroed_candidates = data.getrow(i) @ data.T
     data[i, g] = 0
@@ -48,6 +48,7 @@ def forget(data, i, g, k, norms, index):
 
         if not found:
             # print('case1', r)
+            stats[0] += 1
             heapq.heappush(heap, [cosine, i])
             if len(heap) > k:
                 heapq.heappop(heap)
@@ -55,12 +56,14 @@ def forget(data, i, g, k, norms, index):
             if cosine != 0:
                 if cosine >= top:
                     # print('case2', r)
+                    stats[1] += 1
                     for tup in heap:
                         if tup[1] == i:
                             tup[0] = cosine
                     heapq.heapify(heap)
                 else:
                     # print('case3', r)
+                    stats[2] += 1
                     rdots = data.getrow(r) @ data.T
                     rcosines = [[(value / (norms[r] * norms[col])).item(), col] 
                             for col, value in zip(rdots.indices, rdots.data) if col != r]
@@ -70,11 +73,13 @@ def forget(data, i, g, k, norms, index):
             else:
                 if len(heap) < k:
                     # print('case4', r)
+                    stats[3] += 1
                     heap = list(filter(lambda tup: tup[1] != i, heap))
                     heapq.heapify(heap)
                     index[r] = heap
                 else:
                     # print('case5', r)
+                    stats[4] += 1
                     rdots = data.getrow(r) @ data.T
                     rcosines = [[(value / (norms[r] * norms[col])).item(), col] 
                             for col, value in zip(rdots.indices, rdots.data) if col != r]
@@ -110,18 +115,22 @@ def index_equal(index1, index2, eps=0.01):
         counter += 1
     return True
 
-def compare(data, r, c, k):
+def compare(data, r, c, k, stats):
     actual_index = ground_truth(copy.deepcopy(data), r, c, k)
     norms, index = build_index(data, k)
-    unlearned_index = forget(copy.deepcopy(data), r, c, k, norms, copy.deepcopy(index))
+    unlearned_index = forget(copy.deepcopy(data), r, c, k, norms, copy.deepcopy(index), stats)
     return index_equal(copy.deepcopy(actual_index), copy.deepcopy(unlearned_index))
 
-data = sps.random(20, 40, density=0.1, format='csr', random_state=42)
-k = 5
+if __name__ == "__main__":
+    data = sps.random(50, 100, density=0.1, format='csr', random_state=42)
+    k = 8
+    stats = np.zeros(5)
 
-for r in range(data.shape[0]):
-    for c in data.getrow(r).indices:
-        if not compare(data, r, c, k):
-            print(r, c)
+    for r in range(data.shape[0]):
+        for c in data.getrow(r).indices:
+            if not compare(data, r, c, k, stats):
+                print(r, c)
 
-# print(compare(data, 5, 18, k))
+    print(stats)
+
+    # print(compare(data, 5, 18, k))
