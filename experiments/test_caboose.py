@@ -1,6 +1,6 @@
 import numpy as np
 import similaripy as sim
-import scipy.sparse as sps
+from scipy import sparse
 import heapq
 import bisect
 import copy
@@ -122,15 +122,21 @@ def compare(data, r, c, k, stats):
     return index_equal(copy.deepcopy(actual_index), copy.deepcopy(unlearned_index))
 
 if __name__ == "__main__":
-    data = sps.random(50, 100, density=0.1, format='csr', random_state=42)
-    k = 8
+    data = sparse.random(100, 100, density=0.1, format='csr', random_state=42)
+    k = 30
     stats = np.zeros(5)
 
+    # Tests
+    passing = True
     for r in range(data.shape[0]):
         for c in data.getrow(r).indices:
             if not compare(data, r, c, k, stats):
+                passing = False
                 print(r, c)
 
-    print(stats)
+    if passing:
+        print("All tests pass!")
+
+    print("Counting Stats:", stats / sum(stats) * 100)
 
     # print(compare(data, 5, 18, k))
