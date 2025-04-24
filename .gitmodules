@@ -1,0 +1,6 @@
+[submodule "caboose"]
+	path = caboose
+	url = git@github.com:amsterdata/caboose.git
+[submodule "caboose_index"]
+	path = caboose_index
+	url = git@github.com:schelterlabs/caboose_index.git
