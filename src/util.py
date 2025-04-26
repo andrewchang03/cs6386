@@ -24,9 +24,14 @@ def create_random(n, d, density, normalize=True, seed=42):
     data = sparse.random(n, d, density=density, format='csr', random_state=seed)
     data = data.toarray().astype('float32')
     if normalize:
-        norms = np.linalg.norm(data, axis=1, keepdims=True)
-        norms = np.where(norms == 0, 1, norms)
-        data /= norms
+        data = normalize(data)
+    return data
+
+def normalize(data):
+    data = data.astype(float)
+    norms = np.linalg.norm(data, axis=1, keepdims=True)
+    norms = np.where(norms == 0, 1, norms)
+    data /= norms
     return data
 
 def sklearn_flat(q, data, k) -> np.ndarray:
@@ -55,7 +60,7 @@ def stats(exact: set, estimate: set):
     tp = len(exact & estimate)
     precision = tp / len(estimate)
     recall = tp / len(exact)
-    f = (2 * precision * recall) / (precision + recall)
+    f = (2 * precision * recall) / (precision + recall) if precision + recall > 0 else 0
     return precision, recall, f
 
 def avg_over_five(func, *args, **kwargs):
