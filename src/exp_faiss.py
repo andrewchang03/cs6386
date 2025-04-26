@@ -1,7 +1,6 @@
 import faiss
 import numpy as np
 from scipy import sparse
-from collections import defaultdict
 from sklearn.random_projection import SparseRandomProjection
 import matplotlib.pyplot as plt
 import os
@@ -65,8 +64,7 @@ def faiss_nbits(n, d, density, nbits, k):
     plt.xlabel('Number of Hash Bits')
     plt.ylabel('Precision')
     plt.title('Faiss LSH Precision vs Number of Hash Bits')
-    path = util.absolute_path(BASE_DIR, '..', 'faiss_results', 'faiss_nbits.png')
-    plt.savefig(path)
+    plt.savefig('../results/faiss_nbits.png')
 
 def faiss_sparsity(n, d, density, nbits, k):
     """
@@ -84,8 +82,7 @@ def faiss_sparsity(n, d, density, nbits, k):
     plt.xlabel('Data Sparsity')
     plt.ylabel('Precision')
     plt.title('Faiss LSH Precision vs Data Sparsity')
-    path = util.absolute_path(BASE_DIR, '..', 'faiss_results', 'faiss_sparsity.png')
-    plt.savefig(path)
+    plt.savefig('../results/faiss_sparsity.png')
 
 def faiss_dimensions(n, d, density, nbits, k):
     """
@@ -104,21 +101,29 @@ def faiss_dimensions(n, d, density, nbits, k):
     plt.ylabel('Precision')
     plt.xscale('log')
     plt.title('Faiss LSH Precision vs Data Dimensionality')
-    path = util.absolute_path(
-        BASE_DIR, '..', 'faiss_results', 'faiss_dimensionality.png')
-    plt.savefig(path)
+    plt.savefig('../results/faiss_dimensionality.png')
 
 def save_flat_topk(name, k=50):
     """
     Save exact top-[k] index of dataset [name]
     """
-    data = util.load_npz_dense(
-        util.absolute_path(BASE_DIR, '..', 'data', name + '.npz'))
+    data = util.load_npz_dense('../data/' + name + '.npz')
     flat = create_faiss_flat(data)
     _, idx_flat = flat.search(data, k=k)
 
-    path = util.absolute_path(BASE_DIR, '..', 'faiss_results', name + '_top50.npy')
-    with open(path, 'wb') as f:
+    with open('../results/' + name + '_top50.npy', 'wb') as f:
+        np.save(f, idx_flat)
+
+def save_mnist_topk(k=50):
+    """
+    Save exact top-[k] index of mnist
+    """
+    data = np.load('../data/mnist.npy')
+    data = util.normalize(data)
+    flat = create_faiss_flat(data)
+    _, idx_flat = flat.search(data, k=k)
+
+    with open('../results/mnist_top50.npy', 'wb') as f:
         np.save(f, idx_flat)
 
 def faiss_dataset(name, nbits, k=50, n_components=500, reduce=False, seed=42):
@@ -126,16 +131,13 @@ def faiss_dataset(name, nbits, k=50, n_components=500, reduce=False, seed=42):
     Evaluate Faiss LSH vs Flat on real datasets.
     [reduce] if you want to reduce dimensionality of data
     """
-    data = util.load_npz_dense(
-        util.absolute_path(BASE_DIR, '..', 'data', name + '.npz'))
-    idx_flat = np.load(
-        util.absolute_path(BASE_DIR, '..', 'faiss_results', name + '_top50.npy'))
-    # print('read done')
+    data = util.load_npz_dense('../data/' + name + '.npz')
+    idx_flat = np.load('../results/' + name + '_top50.npy')
 
     if reduce:
-        srp = SparseRandomProjection(n_components=n_components, random_state=seed)
+        srp = SparseRandomProjection(
+            n_components=n_components, random_state=seed)
         data = srp.fit_transform(data)
-        # print(data.shape)
 
     timer = util.Timer()
     lsh = create_faiss_lsh(data, nbits)
@@ -153,27 +155,27 @@ def faiss_dataset(name, nbits, k=50, n_components=500, reduce=False, seed=42):
         p, _, _ = util.stats(idx_flat_row, idx_lsh_row)
         precisions.append(p)
 
-    return round(sum(precisions) / len(precisions), 5), index_elapsed, search_elapsed
+    avg_precision = round(sum(precisions) / len(precisions), 5)
+    return avg_precision, index_elapsed, search_elapsed
 
 def faiss_dataset_nbits(name, k=50):
-    nbits_x = [32, 64, 128, 256, 512, 1024, 2048, 4096]
+    """
+    Experiments on specified dataset [name] with varying lsh hash bits
+    """
+    nbits_x = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
     nbits_y = []
-    nbits_ie = []  # indexing runtime
-    nbits_se = []  # search runtime
     nbits_reduced_y = []
-    nbits_reduced_ie = []  # indexing runtime
-    nbits_reduced_se = []  # search runtime
+    nbits_index = []
+    nbits_search = []
 
     for nbits in nbits_x:
         print(nbits)
-        p, ie, se = faiss_dataset(name, nbits)
-        p_reduced, ie_reduced, se_reduced = faiss_dataset(name, nbits, reduce=True)
-        nbits_y.append(p)
-        nbits_reduced_y.append(p_reduced)
-        nbits_ie.append(ie)
-        nbits_reduced_ie.append(ie_reduced)
-        nbits_se.append(se)
-        nbits_reduced_se.append(se_reduced)
+        precision, index_time, search_time = faiss_dataset(name, nbits)
+        precision_reduced, _, _ = faiss_dataset(name, nbits, reduce=True)
+        nbits_y.append(precision)
+        nbits_reduced_y.append(precision_reduced)
+        nbits_index.append(index_time)
+        nbits_search.append(search_time)
 
     plt.plot(nbits_x, nbits_y, label='Original')
     plt.plot(nbits_x, nbits_reduced_y, label='Projected')
@@ -181,13 +183,41 @@ def faiss_dataset_nbits(name, k=50):
     plt.ylabel('Precision')
     plt.title('Precision vs Number of LSH Hash Bits on ' + name)
     plt.legend()
-    plt.savefig(util.absolute_path(
-        BASE_DIR, '..', 'faiss_results', 'faiss_' + name + '.png'))
+    plt.savefig('../results/faiss_' + name + '.png')
 
-    print(nbits_ie)
-    print(nbits_reduced_ie)
-    print(nbits_se)
-    print(nbits_reduced_se)
+    print(nbits_index)
+    print(nbits_search)
+
+def faiss_mnist(nbits, k=50, n_components=500, reduce=False, seed=42):
+    """
+    Same as faiss_dataset but for mnist
+    """
+    data = np.load('../data/mnist.npy')
+    idx_flat = np.load('../results/mnist_top50.npy')
+
+    if reduce:
+        srp = SparseRandomProjection(
+            n_components=n_components, random_state=seed)
+        data = srp.fit_transform(data)
+
+    timer = util.Timer()
+    lsh = create_faiss_lsh(data, nbits)
+    index_elapsed = timer.measure()
+
+    timer.start()
+    _, idx_lsh = lsh.search(data, k=k)
+    search_elapsed = timer.measure()
+
+    precisions = []
+
+    for i in range(len(idx_flat)):
+        idx_flat_row = set(idx_flat[i].flatten())
+        idx_lsh_row = set(idx_lsh[i].flatten())
+        p, _, _ = util.stats(idx_flat_row, idx_lsh_row)
+        precisions.append(p)
+
+    avg_precision = round(sum(precisions) / len(precisions), 5)
+    return avg_precision, index_elapsed, search_elapsed
 
 if __name__ == "__main__":
     n = 1000
@@ -203,6 +233,7 @@ if __name__ == "__main__":
     
     # save_flat_topk('movie', k=50)
     # save_flat_topk('lastfm', k=50)
+    # save_mnist_topk()
 
     # avg_precision_movie, ie, se = faiss_dataset('movie', 1024)
     # avg_precision_movie, ie, se = faiss_dataset('movie', 1024, reduce=True)
