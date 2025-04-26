@@ -17,6 +17,13 @@ class Timer():
     def measure(self) -> int:
         return (datetime.now() - self.current).total_seconds() * 1000
     
+def normalize_data(data):
+    data = data.astype(float)
+    norms = np.linalg.norm(data, axis=1, keepdims=True)
+    norms = np.where(norms == 0, 1, norms)
+    data /= norms
+    return data
+
 def create_random(n, d, density, normalize=True, seed=42):
     """
     Creates (n, d) data with density=[density] (in range [0, 1])
@@ -24,14 +31,26 @@ def create_random(n, d, density, normalize=True, seed=42):
     data = sparse.random(n, d, density=density, format='csr', random_state=seed)
     data = data.toarray().astype('float32')
     if normalize:
-        data = normalize(data)
+        data = normalize_data(data)
     return data
 
-def normalize(data):
-    data = data.astype(float)
-    norms = np.linalg.norm(data, axis=1, keepdims=True)
-    norms = np.where(norms == 0, 1, norms)
-    data /= norms
+def load_npz(path, normalize=True):
+    """
+    Loads npz file (csr matrix) from [path] 
+    and returns densified np.ndarray of it
+    """
+    data = sparse.load_npz(path).toarray().astype('float32')
+    if normalize:
+        data = normalize_data(data)
+    return data
+
+def load_npy(path, normalize=True):
+    """
+    Loads npy file from [path]
+    """
+    data = np.load(path)
+    if normalize:
+        data = normalize_data(data)
     return data
 
 def sklearn_flat(q, data, k) -> np.ndarray:
@@ -78,18 +97,3 @@ def avg_over_five(func, *args, **kwargs):
     recall_avg = round(recall_total / 5, 5)
     f_avg = round(f_total / 5, 5)
     return precision_avg, recall_avg, f_avg
-
-def absolute_path(base, *paths):
-    return os.path.join(base, *paths)
-
-def load_npz_dense(path, normalize=True):
-    """
-    Loads npz file (csr matrix) from [path] 
-    and returns densified np.ndarray of it
-    """
-    data = sparse.load_npz(path).toarray().astype('float32')
-    if normalize:
-        norms = np.linalg.norm(data, axis=1, keepdims=True)
-        norms = np.where(norms == 0, 1, norms)
-        data /= norms
-    return data

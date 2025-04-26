@@ -7,8 +7,6 @@ import os
 
 import util
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 def create_faiss_flat(data: np.ndarray):
     """
     Creates exact cosine similarity index on Faiss.
@@ -107,7 +105,7 @@ def save_flat_topk(name, k=50):
     """
     Save exact top-[k] index of dataset [name]
     """
-    data = util.load_npz_dense('../data/' + name + '.npz')
+    data = util.load_npz('../data/' + name + '.npz')
     flat = create_faiss_flat(data)
     _, idx_flat = flat.search(data, k=k)
 
@@ -118,8 +116,7 @@ def save_mnist_topk(k=50):
     """
     Save exact top-[k] index of mnist
     """
-    data = np.load('../data/mnist.npy')
-    data = util.normalize(data)
+    data = util.load_npy('../data/mnist.npy')
     flat = create_faiss_flat(data)
     _, idx_flat = flat.search(data, k=k)
 
@@ -131,7 +128,7 @@ def faiss_dataset(name, nbits, k=50, n_components=500, reduce=False, seed=42):
     Evaluate Faiss LSH vs Flat on real datasets.
     [reduce] if you want to reduce dimensionality of data
     """
-    data = util.load_npz_dense('../data/' + name + '.npz')
+    data = util.load_npz('../data/' + name + '.npz')
     idx_flat = np.load('../results/' + name + '_top50.npy')
 
     if reduce:
@@ -188,11 +185,11 @@ def faiss_dataset_nbits(name, k=50):
     print(nbits_index)
     print(nbits_search)
 
-def faiss_mnist(nbits, k=50, n_components=500, reduce=False, seed=42):
+def faiss_mnist(nbits, k=50, n_components=100, reduce=False, seed=42):
     """
     Same as faiss_dataset but for mnist
     """
-    data = np.load('../data/mnist.npy')
+    data = util.load_npy('../data/mnist.npy')
     idx_flat = np.load('../results/mnist_top50.npy')
 
     if reduce:
@@ -219,6 +216,31 @@ def faiss_mnist(nbits, k=50, n_components=500, reduce=False, seed=42):
     avg_precision = round(sum(precisions) / len(precisions), 5)
     return avg_precision, index_elapsed, search_elapsed
 
+def faiss_runtime_comparison(k=50):
+    data = util.load_npz('../data/movie.npz')
+
+    timer = util.Timer()
+    flat = create_faiss_flat(data)
+    flat_index_time = timer.measure()
+    print('flat index done', flat_index_time)
+
+    timer.start()
+    lsh = create_faiss_lsh(data, 4096)
+    lsh_index_time = timer.measure()
+    print('lsh index done', lsh_index_time)
+
+    q = data[100].reshape(1, -1)
+
+    timer.start()
+    _ = flat.search(q, k=k)
+    flat_search_time = timer.measure()
+    print('flat search done', flat_search_time)
+
+    timer.start()
+    _ = lsh.search(q, k=k)
+    lsh_search_time = timer.measure()
+    print('lsh search done', lsh_search_time)
+
 if __name__ == "__main__":
     n = 1000
     d = 100
@@ -235,8 +257,10 @@ if __name__ == "__main__":
     # save_flat_topk('lastfm', k=50)
     # save_mnist_topk()
 
-    # avg_precision_movie, ie, se = faiss_dataset('movie', 1024)
-    # avg_precision_movie, ie, se = faiss_dataset('movie', 1024, reduce=True)
+    # avg_precision_movie, index_time, search_time = faiss_dataset('movie', 1024)
+    # faiss_mnist(512)
     
     # faiss_dataset_nbits('lastfm')
     # faiss_dataset_nbits('movie')
+
+    faiss_runtime_comparison()
