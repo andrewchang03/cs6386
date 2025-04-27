@@ -31,6 +31,9 @@ class LSH:
         top_k = top_k[:,::-1]
         top_k = top_k[:,:k]
         return util.sklearn_flat(query, self.data, k=k)
+    
+    def unlearn(self):
+        pass
 
 class MultiProbeLSH(LSH):
     def __init__(self, nbits, dim, flips):
@@ -91,29 +94,24 @@ def compute_metrics(exact_idxs, lsh_idxs):
     f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
     return np.array([precision, recall, f1_score])
 
-if __name__ == "__main__":
-    np.random.seed(42)
-
-    dataset = 'lastfm'
-    data = util.load_npz('../data/' + dataset + '.npz')
+def experiment(data, exact, lsh):
     n, dim = data.shape
-    query = data[178]
-    exact = np.load('../results/' + dataset + '_top50.npy')
-
-    lsh = MultiProbeLSH(nbits=12, dim=dim, flips=4)
-    # lsh = NoBucketLSH(nbits=256, dim=dim)
+    timer = util.Timer()
     lsh.index(data)
+    index_time = timer.measure()
 
     avg_stats = np.zeros(3)
-    avg_candidates = 0
+    avg_candidates = avg_search_time = 0
     iters = 50
 
     for iter in range(iters):
-        print(iter)
+        print('Iteration', iter)
         i = int(np.random.random() * n)
         query = data[i]
 
+        timer.start()
         approx, num_candidates = lsh.search(query, k=50)
+        avg_search_time += timer.measure()
 
         stats = compute_metrics(exact[i], approx)
         avg_stats += stats
@@ -121,6 +119,31 @@ if __name__ == "__main__":
 
     avg_stats /= iters
     avg_candidates /= iters
+    avg_search_time /= iters
+
+    return avg_stats, avg_candidates, index_time, avg_search_time
+
+def multi_probe_experiment(dataset, nbits, flips):
+    data = util.load_npz('../data/' + dataset + '.npz')
+    exact = np.load('../results/' + dataset + '_top50.npy')
+
+    lsh = MultiProbeLSH(nbits=nbits, dim=data.shape[1], flips=flips)
+    return experiment(data, exact, lsh)
+
+def no_bucket_experiment(dataset, nbits):
+    data = util.load_npz('../data/' + dataset + '.npz')
+    exact = np.load('../results/' + dataset + '_top50.npy')
+
+    lsh = NoBucketLSH(nbits=nbits, dim=data.shape[1])
+    return experiment(data, exact, lsh)
+
+if __name__ == "__main__":
+    np.random.seed(42)
+
+    # avg_stats, avg_candidates, index_time, avg_search_time = multi_probe_experiment('lastfm', 12, 4)
+    avg_stats, avg_candidates, index_time, avg_search_time = no_bucket_experiment('lastfm', 256)
 
     print(f"Precision: {avg_stats[0]:.4f}, Recall: {avg_stats[1]:.4f}, F1: {avg_stats[2]:.4f}")
-    print(avg_candidates)
+    print('Average Number of Candidates', avg_candidates)
+    print('Index Time', index_time)
+    print('Average Search Time', avg_search_time)
