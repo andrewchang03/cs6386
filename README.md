@@ -1,18 +1,22 @@
-To run caboose functionalities:
-git clone caboose
-git clone caboose_index
+# Top-K Search and Unlearning with LSH
 
-### Preliminaries
- * Make sure you have Python 3.9 and Rust installed: https://www.rust-lang.org/tools/install
- * Make sure to have https://github.com/schelterlabs/caboose_index checked out as `caboose_index` in the same folder as this project
+When you clone this repo, please use `git clone --recurse-submodules`.
+Alternatively, you can manually `git clone caboose` or `git clone caboose_index`
+into the repo.
 
+## Installing Caboose
+Make sure you have Python 3.9 and Rust installed: https://www.rust-lang.org/tools/install
+
+We recommend creating a separate virtual env for testing [Caboose](https://deem.berlin/pdf/caboose.pdf):
+```
 conda create --name caboose python=3.9
 conda activate caboose
+```
 
-cd caboose
- * Setup a virtualenv `python3.9 -m venv venv` and `source venv/bin/activate`
- * Install Cython (needed for similaripy) `pip install Cython==0.29.32`
- * Install the dependencies `pip install -r requirements.txt`
+Once you `cd` into the `caboose` directory,
+ * Install Cython (needed for similaripy) with `pip install Cython==0.29.32`
+ * Install the dependencies with `pip install -r requirements.txt`
  * Build the project with `maturin develop --release`
 
-conda deactivate
+Whenever running code from `caboose`, make sure `conda activate caboose`.
+Once done with your `caboose` workflow, `conda deactivate`.
