@@ -217,7 +217,7 @@ def faiss_mnist(nbits, k=50, n_components=100, reduce=False, seed=42):
     return avg_precision, index_elapsed, search_elapsed
 
 def faiss_runtime_comparison(k=50):
-    data = util.load_npz('../data/movie.npz')
+    data = util.load_npz('../data/lastfm.npz')
 
     timer = util.Timer()
     flat = create_faiss_flat(data)
@@ -225,7 +225,7 @@ def faiss_runtime_comparison(k=50):
     print('flat index done', flat_index_time)
 
     timer.start()
-    lsh = create_faiss_lsh(data, 4096)
+    lsh = create_faiss_lsh(data, 1024)
     lsh_index_time = timer.measure()
     print('lsh index done', lsh_index_time)
 
