@@ -82,7 +82,7 @@ class NoBucketLSH(LSH):
         super().__init__(nbits, dim)
 
     def search(self, query, k=50):
-        query_code = self.hash(query[np.newaxis, :])[0]
+        query_code = self.hash(query)
         dists = [hamming(query_code, code) for code in self.hashed]
         sorted_indices = np.argsort(dists)
         top_k = sorted_indices[:k]
