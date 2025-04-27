@@ -216,30 +216,73 @@ def faiss_mnist(nbits, k=50, n_components=100, reduce=False, seed=42):
     avg_precision = round(sum(precisions) / len(precisions), 5)
     return avg_precision, index_elapsed, search_elapsed
 
-def faiss_runtime_comparison(k=50):
-    data = util.load_npz('../data/lastfm.npz')
+def faiss_runtime_comparison(dataset, k=50):
+    nbits = [8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+    data = util.load_npz('../data/' + dataset + '.npz')
+    flat_index_times = []
+    lsh_index_times = []
+    flat_search_times = []
+    lsh_search_times = []
 
-    timer = util.Timer()
-    flat = create_faiss_flat(data)
-    flat_index_time = timer.measure()
-    print('flat index done', flat_index_time)
+    for nbit in nbits:
+        print('nbits', nbit)
+        timer = util.Timer()
+        flat = create_faiss_flat(data)
+        flat_index_time = timer.measure()
+        flat_index_times.append(flat_index_time)
+        # print('flat index done', flat_index_time)
 
-    timer.start()
-    lsh = create_faiss_lsh(data, 1024)
-    lsh_index_time = timer.measure()
-    print('lsh index done', lsh_index_time)
+        timer.start()
+        lsh = create_faiss_lsh(data, nbit)
+        lsh_index_time = timer.measure()
+        lsh_index_times.append(lsh_index_time)
+        # print('lsh index done', lsh_index_time)
 
-    q = data[100].reshape(1, -1)
+        q = data[150].reshape(1, -1)
 
-    timer.start()
-    _ = flat.search(q, k=k)
-    flat_search_time = timer.measure()
-    print('flat search done', flat_search_time)
+        timer.start()
+        _ = flat.search(q, k=k)
+        flat_search_time = timer.measure()
+        flat_search_times.append(flat_search_time)
+        # print('flat search done', flat_search_time)
 
-    timer.start()
-    _ = lsh.search(q, k=k)
-    lsh_search_time = timer.measure()
-    print('lsh search done', lsh_search_time)
+        timer.start()
+        _ = lsh.search(q, k=k)
+        lsh_search_time = timer.measure()
+        lsh_search_times.append(lsh_search_time)
+        # print('lsh search done', lsh_search_time)
+
+    plt.plot(nbits, flat_index_times, label='Flat Index')
+    plt.plot(nbits, lsh_index_times, label='LSH Index')
+    plt.xlabel('Number of LSH Hash Bits')
+    plt.ylabel('Runtime (ms)')
+    plt.title('Faiss Indexing Time vs Number of LSH Hash Bits on ' + dataset)
+    plt.legend()
+    plt.savefig('../results/faiss_indexing_runtime_' + dataset + '.png')
+
+    plt.clf()
+
+    # print(lsh_search_times)
+    # plt.plot(nbits, flat_search_times, label='Flat Index')
+    # plt.plot(nbits, lsh_search_times, label='LSH Index')
+    # plt.xlabel('Number of LSH Hash Bits')
+    # plt.ylabel('Runtime (ms)')
+    # plt.title('Faiss Querying Time vs Number of LSH Hash Bits on ' + dataset)
+    # plt.legend()
+    # plt.savefig('../results/faiss_querying_runtime_' + dataset + '.png')
+
+    plt.plot(nbits, flat_search_times, label='Flat Index')
+    plt.plot(nbits, lsh_search_times, label='LSH Index')
+
+    for x, y in zip(nbits, lsh_search_times):
+        plt.text(x, y, f'{y:.2f}', fontsize=8, ha='left', va='bottom')
+
+    plt.xscale('log')
+    plt.xlabel('Number of LSH Hash Bits')
+    plt.ylabel('Runtime (ms)')
+    plt.title('Faiss Querying Time vs Number of LSH Hash Bits on ' + dataset)
+    plt.legend()
+    plt.savefig('../results/faiss_querying_runtime_' + dataset + '.png')
 
 if __name__ == "__main__":
     n = 1000
@@ -263,4 +306,5 @@ if __name__ == "__main__":
     # faiss_dataset_nbits('lastfm')
     # faiss_dataset_nbits('movie')
 
-    faiss_runtime_comparison()
+    # faiss_runtime_comparison('lastfm')
+    faiss_runtime_comparison('movie')
