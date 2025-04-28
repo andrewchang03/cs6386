@@ -19,3 +19,11 @@ flat index done 147.119
 lsh index done 6363.574
 flat search done 21.907
 lsh search done 16.644
+
+On 10 trials
+lastfm caboose (index, search, unlearn): 89.7826 0.019100000000000006 0.6436
+movie caboose (index, search, unlearn): 36741.9109 0.0207 19.8799
+lastfm 2048 cpu [6.420000e-01 6.912131e+02 3.480790e+01 3.151930e+01]
+lastfm 2048 mps [0.77 1.1045 2.5019 0.2714]
+movie 2048 cpu [5.8900000e-01 3.0132196e+03 7.9627500e+01 2.2448500e+00]
+movie 2048 mps [ 0.568  16.1939 58.7286  0.429 ]
