@@ -217,26 +217,27 @@ def experiment_num_bits(dataset, num_trials=10):
         search_times.append(avg_stats[2])
         unlearn_times.append(avg_stats[3])
 
-    plt.plot(nbits, precisions)
-    plt.xlabel('Number of LSH Hash Bits')
-    plt.ylabel('Precision')
-    plt.title('Precision vs Number of LSH Hash Bits on ' + dataset)
-    plt.legend()
-    plt.savefig('../results/final_precision_' + dataset + '.png')
+    # plt.plot(nbits, precisions)
+    # plt.xlabel('Number of LSH Hash Bits')
+    # plt.ylabel('Precision')
+    # plt.title('Precision vs Number of LSH Hash Bits on ' + dataset)
+    # plt.legend()
+    # plt.savefig('../results/final_precision_' + dataset + '.png')
 
-    print(index_times)
-    print(search_times)
-    print(unlearn_times)
+    # print(index_times)
+    # print(search_times)
+    # print(unlearn_times)
 
     # plt.clf()
 
-    # plt.plot(nbits, index_times, label='Indexing Time')
-    # plt.plot(nbits, search_times, label='Search TIme')
-    # plt.xlabel('Number of LSH Hash Bits')
-    # plt.ylabel('Runtime (ms)')
-    # plt.title('Runtime vs Number of LSH Hash Bits on ' + dataset)
-    # plt.legend()
-    # plt.savefig('../results/final_precision_' + dataset + '.png')
+    plt.plot(nbits, index_times, label='Index Time')
+    plt.plot(nbits, search_times, label='Search TIme')
+    plt.plot(nbits, unlearn_times, label='Unlearn TIme')
+    plt.xlabel('Number of LSH Hash Bits')
+    plt.ylabel('Runtime (ms)')
+    plt.title('Runtimes vs Number of LSH Hash Bits on ' + dataset)
+    plt.legend()
+    plt.savefig('../results/final_runtimes_' + dataset + '.png')
 
 def gen_runtime_graphs():
     # index, search, unlearn
