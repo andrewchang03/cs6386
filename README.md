@@ -18,5 +18,10 @@ Once you `cd` into the `caboose` directory,
  * Install the dependencies with `pip install -r requirements.txt`
  * Build the project with `maturin develop --release`
 
-Whenever running code from `caboose`, make sure `conda activate caboose`.
-Once done with your `caboose` workflow, `conda deactivate`.
+`cd ..` out back to this project's directory and run `pip install -r requirements.txt`.
+
+## Files
+`src/main.py` contains the main LSH implementations. 
+All other files in `src` contains many other adjacent experiments and implementations.
+
+`results` directory contains our experiment outcomes generated from files in `src`.
